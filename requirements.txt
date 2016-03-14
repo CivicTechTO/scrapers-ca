@@ -1,7 +1,9 @@
 # @see https://github.com/opencivicdata/pupa/pull/221
--e git+git://github.com/opencivicdata/pupa.git@83900c3703816375e4573d9c80c36784b37a5922#egg=pupa
+# @see https://github.com/opencivicdata/pupa/pull/228
+-e git+git://github.com/patcon/pupa.git@228-add-eventagendaitem-classification#egg=pupa
 -e git+git://github.com/opencivicdata/python-opencivicdata-divisions.git#egg=opencivicdata-divisions
--e git+git://github.com/opencivicdata/python-opencivicdata-django.git@0.8.0#egg=opencivicdata-django
+# @see https://github.com/opencivicdata/python-opencivicdata-django/pull/57
+-e git+git://github.com/opencivicdata/python-opencivicdata-django.git@42bf463026a6b14a6f069c6db6dc974d11134b45#egg=opencivicdata-django
 -e git+git://github.com/sunlightlabs/waterfall#egg=waterfall
 boto==2.33.0 # pupa unpinned
 cssselect==0.9.1
