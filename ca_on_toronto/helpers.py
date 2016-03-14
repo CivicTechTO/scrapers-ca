@@ -9,6 +9,11 @@ def committees_from_sessions(self, sessions=[]):
         term = session['identifier']
         page = self.lxmlize(COMMITTEE_LIST_TEMPLATE.format(term))
         for a in page.xpath('//table[@id="list"]//td[@class="db"]/a'):
+            committee_name = a.text.strip()
+            if committee_name == 'Board of Health Public Health Champion Awards Selection Committee':
+                # TODO: Actually scrape this committee
+                continue
+
             link = a.attrib['href']
             data = committee_from_url(self, link)
             data.update({'term': term})
