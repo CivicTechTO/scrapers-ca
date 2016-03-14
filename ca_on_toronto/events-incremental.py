@@ -4,6 +4,9 @@ from utils import CanadianScraper
 from pupa.scrape import Bill, Event
 from urllib.parse import parse_qs, urlparse
 import lxml.html
+import lxml.etree as etree
+from collections import defaultdict
+import traceback
 import datetime as dt
 import pytz
 import re
@@ -53,32 +56,67 @@ class TorontoIncrementalEventScraper(CanadianScraper):
     def scrape_committee_data(self):
         self.committees_by_name = self.committee_lookup_dict()
 
-    def parse_table(self, table_node):
-        items = []
+    def parseCalendarTable(self, table):
+        headers = table.xpath(".//th[@class='ss_title_header_top']")
+        rows = table.xpath(".//tr[td]")
 
-        def sanitize_key(str): return str.lower().strip().replace(' ', '_').replace('.', '')
+        keys = []
+        for header in headers :
+            text_content = header.text_content().replace('&nbsp;', ' ').strip()
+            if text_content :
+                keys.append(text_content)
+            else :
+                keys.append(header.xpath('.//input')[0].value)
 
-        def sanitize_org_name(org_name):
-            # Some meetings preceded with legend, ie "S:" for special meetings.
-            org_name = re.sub(r'^[A-Z]: +', '', org_name)
-            # Strip suffix (ie. cancelled meetings)
-            org_name = re.sub(r'\u2014.*$', '', org_name)
-            org_name = org_name.strip()
-            # Special case for city council name
-            org_name = self.jurisdiction.name if org_name == 'City Council' else org_name
-            return org_name
-
-        rows = table_node.xpath('tr')
-        headers = [sanitize_key(col.text) for col in rows.pop(0)]
         for row in rows:
-            meeting_link = row.cssselect('a')[0].attrib['href']
-            values = [col.text_content().strip() for col in row]
-            item = dict(zip(headers, values))
-            item.update({'meeting': sanitize_org_name(item['meeting']) })
-            item.update({'meeting_link': meeting_link})
-            items.append(item)
+            try:
+                data = defaultdict(lambda : None)
 
-        return items
+                for key, field in zip(keys, row.xpath("./td")):
+                    text_content = self._stringify(field)
+
+                    if field.find('.//a') is not None :
+                        text_content = self._stringify(field.find('.//a'))
+                        address = self._get_link_address(field.find('.//a'))
+                        if address :
+                            value = {'label': text_content,
+                                     'url': address}
+                        else :
+                            value = text_content
+                    else :
+                        value = text_content
+
+                    data[key] = value
+
+                yield data, keys, row
+
+            except Exception as e:
+                print('Problem parsing row:')
+                print(etree.tostring(row))
+                print(traceback.format_exc())
+                raise e
+
+    def _get_link_address(self, link):
+        url = None
+        if 'onclick' in link.attrib:
+            onclick = link.attrib['onclick']
+            if (onclick is not None 
+                and onclick.startswith(("radopen('",
+                                        "window.open",
+                                        "OpenTelerikWindow"))):
+                url = self.BASE_URL + onclick.split("'")[1]
+        elif 'href' in link.attrib : 
+            url = link.attrib['href']
+
+        return url
+
+    def _stringify(self, field) :
+        for br in field.xpath("*//br"):
+            br.tail = "\n" + br.tail if br.tail else "\n"
+        for em in field.xpath("*//em"):
+            if em.text :
+                em.text = "--em--" + em.text + "--em--"
+        return field.text_content().replace('&nbsp;', ' ').strip()
 
     def extract_events_by_day(self, date):
         url = CALENDAR_DAY_TEMPLATE.format(date.year, date.month-1, date.day)
@@ -90,22 +128,18 @@ class TorontoIncrementalEventScraper(CanadianScraper):
 
         table_node = tables[0]
 
-        raw_table_data = self.parse_table(table_node)
+        def sanitize_org_name(org_name):
+            # Special case for city council name
+            org_name = self.jurisdiction.name if org_name == 'City Council' else org_name
+            return org_name
 
-        def create_event_dict(row):
-            event_dict = row
+        def sanitize_event(row):
+            row['Meeting']['label'] = sanitize_org_name(row['Meeting']['label'])
+            return row
 
-            link = row['meeting_link']
-            meeting_id = parse_qs(urlparse(link).query)['meetingId'][0]
-            event_dict.update({'meeting_id': meeting_id})
-
-
-            return event_dict
-
-        events = [create_event_dict(row) for row in raw_table_data]
+        events = [sanitize_event(event) for event, _, _ in self.parseCalendarTable(table_node)]
 
         return events
-
 
     def scrape_events_range(self, start_date, end_date):
 
@@ -117,22 +151,23 @@ class TorontoIncrementalEventScraper(CanadianScraper):
         for date in daterange(start_date, end_date):
             events = self.extract_events_by_day(date)
             for event in events:
+                meeting_id = parse_qs(urlparse(event['Meeting']['url']).query)['meetingId'][0]
                 tz = pytz.timezone("America/Toronto")
-                time = dt.datetime.strptime(event['time'], '%I:%M %p')
+                time = dt.datetime.strptime(event['Time'], '%I:%M %p')
                 start = tz.localize(date.replace(hour=time.hour, minute=time.minute, second=0, microsecond=0))
                 source_url = CALENDAR_DAY_TEMPLATE.format(start.year, start.month, start.day)
-                org_name = event['meeting']
+                org_name = event['Meeting']['label']
                 e = Event(
                     name = org_name,
                     start_time = start,
                     timezone = tz.zone,
-                    location_name = event['location'],
-                    status=STATUS_DICT.get(event['meeting_status'])
+                    location_name = event['Location'],
+                    status=STATUS_DICT.get(event['Meeting Status'])
                     )
                 e.add_source(source_url)
                 e.extras = {
-                    'meeting_number': event['no'],
-                    'tmmis_meeting_id': event['meeting_id'],
+                    'meeting_number': event['No.'],
+                    'tmmis_meeting_id': meeting_id,
                     }
                 e.add_participant(
                     name = org_name,
@@ -140,15 +175,15 @@ class TorontoIncrementalEventScraper(CanadianScraper):
                     )
 
                 def is_agenda_available(event):
-                    return event['publishing_status'] in ['Agenda Published', 'Minutes Published']
+                    return event['Publishing Status'] in ['Agenda Published', 'Minutes Published']
 
                 def is_council(event):
-                    return True if event['meeting'] == self.jurisdiction.name else False
+                    return True if event['Meeting']['label'] == self.jurisdiction.name else False
 
                 if is_agenda_available(event):
                     template = AGENDA_FULL_COUNCIL_TEMPLATE if is_council(event) else AGENDA_FULL_STANDARD_TEMPLATE
-                    agenda_url = template.format(event['meeting_id'])
-                    full_identifiers = list(self.full_identifiers(event['meeting_id'], is_council(event)))
+                    agenda_url = template.format(meeting_id)
+                    full_identifiers = list(self.full_identifiers(meeting_id, is_council(event)))
 
                     e.add_source(agenda_url)
                     agenda_items = self.agenda_from_url(agenda_url)
@@ -169,7 +204,7 @@ class TorontoIncrementalEventScraper(CanadianScraper):
                                 return raw.split(', ')
 
                         def is_being_introduced(item, event):
-                            org_name = event['meeting']
+                            org_name = event['Meeting']['label']
                             identifier = item['identifier']
 
                             # `org_code` is two-letter code for committee
