@@ -1,6 +1,6 @@
-# @see https://github.com/opencivicdata/pupa/pull/221
 # @see https://github.com/opencivicdata/pupa/pull/228
--e git+git://github.com/patcon/pupa.git@228-add-eventagendaitem-classification#egg=pupa
+# @see https://github.com/opencivicdata/pupa/pull/236
+-e git+git://github.com/patcon/pupa.git@tmp/develop#egg=pupa
 -e git+git://github.com/opencivicdata/python-opencivicdata-divisions.git#egg=opencivicdata-divisions
 # @see https://github.com/opencivicdata/python-opencivicdata-django/pull/57
 -e git+git://github.com/opencivicdata/python-opencivicdata-django.git@42bf463026a6b14a6f069c6db6dc974d11134b45#egg=opencivicdata-django

@@ -11,3 +11,18 @@ class TorontoPersonScraper(CSVScraper):
         'Norman Kelly': ['Norm Kelly'],
         'Justin Di Ciano': ['Justin J. Di Ciano'],
     }
+
+    def scrape(self):
+        for p in super(TorontoPersonScraper, self).scrape():
+            # Mayor has an odd relative link redirect
+            # TODO: Fix lxmlize in utils.py to deal with this
+            if p._related[0].role == 'Councillor':
+                person_page_url = p.sources[1]['url']
+                page = self.lxmlize(person_page_url)
+                appointments = page.xpath("//aside//section[contains(.//h2, 'appointments')]//li/a")
+                for a in appointments:
+                    org_name = a.text_content().strip()
+                    p.add_membership(org_name)
+
+            yield p
+
