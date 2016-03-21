@@ -156,7 +156,6 @@ class TorontoIncrementalEventScraper(CanadianScraper):
                 tz = pytz.timezone("America/Toronto")
                 time = dt.datetime.strptime(event['Time'], '%I:%M %p')
                 start = tz.localize(date.replace(hour=time.hour, minute=time.minute, second=0, microsecond=0))
-                source_url = CALENDAR_DAY_TEMPLATE.format(start.year, start.month, start.day)
                 org_name = event['Meeting']['label']
                 e = Event(
                     name = org_name,
@@ -165,7 +164,6 @@ class TorontoIncrementalEventScraper(CanadianScraper):
                     location_name = event['Location'],
                     status=STATUS_DICT.get(event['Meeting Status'])
                     )
-                e.add_source(source_url)
                 e.extras = {
                     'meeting_number': event['No.'],
                     'tmmis_meeting_id': meeting_id,
@@ -181,12 +179,13 @@ class TorontoIncrementalEventScraper(CanadianScraper):
                 def is_council(event):
                     return True if event['Meeting']['label'] == self.jurisdiction.name else False
 
+                template = AGENDA_FULL_COUNCIL_TEMPLATE if is_council(event) else AGENDA_FULL_STANDARD_TEMPLATE
+                agenda_url = template.format(meeting_id)
+                e.add_source(agenda_url)
+
                 if is_agenda_available(event):
-                    template = AGENDA_FULL_COUNCIL_TEMPLATE if is_council(event) else AGENDA_FULL_STANDARD_TEMPLATE
-                    agenda_url = template.format(meeting_id)
                     full_identifiers = list(self.full_identifiers(meeting_id, is_council(event)))
 
-                    e.add_source(agenda_url)
                     agenda_items = self.agenda_from_url(agenda_url)
                     for i, item in enumerate(agenda_items):
 
@@ -213,7 +212,7 @@ class TorontoIncrementalEventScraper(CanadianScraper):
                                 title = item['title'],
                                 from_organization = {'classification': self.jurisdiction.classification},
                                 )
-                            b.add_source(agenda_url)
+                            b.add_source(AGENDA_ITEM_TEMPLATE.format(full_identifier), note='web')
                             b.add_document_link(note='canonical', media_type='text/html', url=AGENDA_ITEM_TEMPLATE.format(full_identifier))
                             b.extras = {
                                 'wards': wards,
