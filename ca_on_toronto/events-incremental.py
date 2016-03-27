@@ -205,6 +205,9 @@ class TorontoIncrementalEventScraper(CanadianScraper):
                         [full_identifier] = [id for id in full_identifiers if identifier_regex.match(id).group(1) == item['identifier']]
                         a.add_bill(full_identifier)
                         if full_identifier not in self.seen_agenda_items:
+                            # TODO: Add bill actions
+                            # url = 'http://app.toronto.ca/tmmis/viewAgendaItemDetails.do?function=getCouncilMinutesItemPreview&agendaItemId=62715'
+                            # page.xpath("//body/table[.//tr[1]//font[contains(.//text(), 'Motions')]]/tbody/tr[2]/td/font/i")
                             b = Bill(
                                 # TODO: Fix this hardcode
                                 legislative_session = '2014-2018',
