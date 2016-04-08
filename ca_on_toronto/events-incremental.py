@@ -158,7 +158,13 @@ class TorontoIncrementalEventScraper(CanadianScraper):
                                 return raw.split(', ')
 
                         identifier_regex = re.compile(r'^[0-9]{4}\.([A-Z]{2}[0-9]+\.[0-9]+)$')
-                        [full_identifier] = [id for id in full_identifiers if identifier_regex.match(id).group(1) == item['identifier']]
+                        matches = [id for id in full_identifiers if identifier_regex.match(id).group(1) == item['identifier']]
+                        # TODO: Remove need for this. Currently, agenda might
+                        # not match list we get from committee page.
+                        if matches:
+                            [full_identifier] = matches
+                        else:
+                            continue
                         a.add_bill(full_identifier)
 
                 yield e
