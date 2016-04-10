@@ -383,11 +383,11 @@ class TorontoBillScraper(CanadianScraper):
         TODO: Investigate "Bills and By-law" [BL] code for bill context
         """
         page = self.lxmlize(agenda_item_version_url)
+
         version = {}
         version.update({
             'type': page.xpath("//table[@class='border'][1]//td[2]")[0].text_content().strip().lower(),
             'action': page.xpath("//table[@class='border'][1]//td[3]")[0].text_content().strip(),
-            'full_text': etree.tostring(page, pretty_print=True).decode(),
         })
 
         wards = page.xpath("//table[@class='border'][1]//td[5]")[0].text_content().strip().lower()
