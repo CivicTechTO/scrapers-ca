@@ -60,6 +60,7 @@ ACTION_CLASSIFICATION = {
     'Reconsider Item': None,
     'Reconsider Vote': None,
     'Refer Item': 'committee-referral',
+    'Set Committee Rule': None,
     'Remove from Committee': None,
     'Waive Notice': None,
     'Waive Referral': None,
