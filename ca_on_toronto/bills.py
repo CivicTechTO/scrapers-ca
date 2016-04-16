@@ -49,6 +49,7 @@ ACTION_CLASSIFICATION = {
     'Defer Item': 'deferred',
     'End Debate': None,
     'Extend the Meeting': None,
+    'forward item Without Recommendations': None,
     'Introduce Motion without Notice': 'introduction',
     'Introduce Report': None,
     'Introduce and Pass Confirmatory Bill': None,
