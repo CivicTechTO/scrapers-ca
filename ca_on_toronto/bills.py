@@ -68,17 +68,18 @@ ACTION_CLASSIFICATION = {
     'Withdraw an Item': 'withdrawal',
 }
 
-RESULT_MAP = {
+VOTE_RESULT_MAP = {
+    'Amended': 'pass',
     'Carried': 'pass',
     'Lost': 'fail',
     'Lost (tie)': 'fail',
-    'Redundant': 'fail',
-    'Final': 'fail',
-    'Withdrawn': 'fail',
-    'Amended': 'pass',
-    # TODO: Investigate what this motion status means
-    # see: http://app.toronto.ca/tmmis/viewAgendaItemDetails.do?function=getMinutesItemPreview&agendaItemId=63347
+    # No VoteEvents
+    'Withdrawn': None,
+    'Redundant': None,
+    # See: http://app.toronto.ca/tmmis/viewAgendaItemHistory.do?item=2016.CD10.2#header1
     'Referred': None,
+    # See: http://app.toronto.ca/tmmis/viewAgendaItemHistory.do?item=2016.SC13.20
+    'Final': None,  # Lost quorum?
 }
 
 motion_re = re.compile(r'(?:(?P<number>[0-9a-z]+) - )?Motion to (?P<action>.+?) (?:moved by (?:Councillor|(?:Deputy )?Mayor )?(?P<mover>.+?) )?\((?P<result>.{0,10})\)$')
@@ -143,7 +144,7 @@ class TorontoBillScraper(CanadianScraper):
                     if 'Motions' in title:
                         motions = content
                         for i, motion in enumerate(motions):
-                            result = RESULT_MAP[motion['result']]
+                            result = VOTE_RESULT_MAP[motion['result']]
                             if result:
                                 v = self.createVoteEvent(motion, version)
                                 count = i + 1
@@ -191,7 +192,7 @@ class TorontoBillScraper(CanadianScraper):
         date = self.toDate(version['date'])
         v = VoteEvent(
             motion_text=motion['title_text'],
-            result=RESULT_MAP[motion['result']],
+            result=VOTE_RESULT_MAP[motion['result']],
             classification=motion['action'],
             start_date=date,
             legislative_session=version['session'],
