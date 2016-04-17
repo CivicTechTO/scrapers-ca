@@ -103,6 +103,7 @@ class TorontoBillScraper(CanadianScraper):
             # Use most recent agenda item version for summary and fulltext
             recent_version = agenda_item_versions[-1]
             b.extras['full_text'] = recent_version['full_text']
+            b.extras['wards'] = recent_version['wards']
             for title, content in recent_version['sections'].items():
                 if 'Summary' in title:
                     date = self.toDate(recent_version['date'])
