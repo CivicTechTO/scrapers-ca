@@ -27,9 +27,6 @@ STATUS_DICT = {
     'In Progress (Public Session)': 'confirmed',
 }
 
-agenda_item_re = re.compile(r'reference = "(?P<identifier>.+?)";')
-address_re = re.compile(r'codeAddress\("\d", ".+?". "(?P<address>.+?)"')
-
 
 class TorontoIncrementalEventScraper(CanadianScraper):
 
@@ -218,21 +215,3 @@ class TorontoIncrementalEventScraper(CanadianScraper):
             link = a.attrib['href']
             full_identifier = parse_qs(urlparse(link).query)['item'][0]
             yield full_identifier
-
-    # TODO: Figure out how to get addresses back into bills
-    def addressesByAgendaId(self, meeting_map_url):
-        addresses_d = {}
-
-        page = self.lxmlize(meeting_map_url)
-        script_text = page.xpath('//script[not(@src)]')[0].text_content()
-
-        agenda_item_ids = re.findall(agenda_item_re, script_text)
-        addresses = re.findall(address_re, script_text)
-
-        for id, address in zip(agenda_item_ids, addresses):
-            if not addresses_d.get(id):
-                addresses_d[id] = [address]
-            else:
-                addresses_d[id].append(address)
-
-        return addresses_d

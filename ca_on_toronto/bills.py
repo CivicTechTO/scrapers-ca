@@ -82,6 +82,10 @@ VOTE_RESULT_MAP = {
     'Final': None,  # Lost quorum?
 }
 
+MEETING_MAP_URL_TEMPLATE='http://app.toronto.ca/tmmis/getAddressList.do?function=getMeetingAddressList&meetingId={}'
+
+agenda_item_re = re.compile(r'reference = "(?P<identifier>.+?)";')
+address_re = re.compile(r'codeAddress\("\d", ".+?". "(?P<address>.+?)"')
 motion_re = re.compile(r'(?:(?P<number>[0-9a-z]+) - )?Motion to (?P<action>.+?) (?:moved by (?:Councillor|(?:Deputy )?Mayor )?(?P<mover>.+?) )?\((?P<result>.{0,10})\)$')
 agenda_item_title_re = re.compile('^(.+?)(?: - (?:by )?((?:Deputy )?Mayor|Councillor) (.+), seconded by ((?:Deputy )?Mayor|Councillor) (.+))?$')
 
@@ -89,6 +93,8 @@ agenda_item_title_re = re.compile('^(.+?)(?: - (?:by )?((?:Deputy )?Mayor|Counci
 class TorontoBillScraper(CanadianScraper):
     AGENDA_ITEM_SEARCH_URL = 'http://app.toronto.ca/tmmis/findAgendaItem.do?function=doSearch&itemsPerPage=1000&sortBy=meetingDate&sortOrder=A'
     AGENDA_ITEM_URL_TEMPLATE = 'http://app.toronto.ca/tmmis/viewAgendaItemHistory.do?item={}'
+
+    meeting_addresses_d = {}
 
     TIMEZONE = 'America/Toronto'
     date_format = '%B %d, %Y'
@@ -180,6 +186,17 @@ class TorontoBillScraper(CanadianScraper):
 
         b = Bill(**bill)
         b.add_source(agenda_item['url'], note='web')
+
+        meeting_id = self.recentMeetingId(b.identifier)
+        addresses_d = self.addressesByMeetingId(meeting_id)
+        print(addresses_d)
+
+        if b.identifier in addresses_d:
+            addresses = addresses_d[b.identifier]
+            b.extras['locations'] = []
+            for address in addresses:
+                location = {'address': {'full_address': address}}
+                b.extras['locations'].append(location)
 
         if primary_sponsor and secondary_sponsor:
             b.add_sponsorship(primary_sponsor, 'mover', 'person', True)
@@ -295,6 +312,16 @@ class TorontoBillScraper(CanadianScraper):
                 yield filing_version
 
             yield version
+
+    def recentMeetingId(self, bill_identifier):
+        url_template = 'http://app.toronto.ca/tmmis/viewAgendaItemHistory.do?item={}'
+        url = url_template.format(bill_identifier)
+        page = self.lxmlize(url)
+        button = page.find(".//button[@id='btHome']")
+        func_re = re.compile(r'goToProfile\((?P<meetingId>\d+)\);')
+        meeting_id = re.match(func_re, button.attrib['onclick']).group('meetingId')
+
+        return meeting_id
 
     def parseDataTable(self, table):
         """
@@ -452,3 +479,26 @@ class TorontoBillScraper(CanadianScraper):
 
     def toDate(self, text):
         return self.toTime(text).date().isoformat()
+
+    # TODO: Figure out how to get addresses back into bills
+    def addressesByMeetingId(self, meeting_id):
+        if self.meeting_addresses_d.get(meeting_id):
+            return self.meeting_addresses_d[meeting_id]
+
+        meeting_map_url = MEETING_MAP_URL_TEMPLATE.format(meeting_id)
+        page = self.lxmlize(meeting_map_url)
+        script_text = page.xpath('//script[not(@src)]')[0].text_content()
+
+        agenda_item_ids = re.findall(agenda_item_re, script_text)
+        addresses = re.findall(address_re, script_text)
+
+        item_addresses = {}
+        for id, address in zip(agenda_item_ids, addresses):
+            if not item_addresses.get(id):
+                item_addresses[id] = [address]
+            else:
+                item_addresses[id].append(address)
+
+        self.meeting_addresses_d[meeting_id] = item_addresses
+
+        return item_addresses
