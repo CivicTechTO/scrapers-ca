@@ -189,7 +189,6 @@ class TorontoBillScraper(CanadianScraper):
 
         meeting_id = self.recentMeetingId(b.identifier)
         addresses_d = self.addressesByMeetingId(meeting_id)
-        print(addresses_d)
 
         if b.identifier in addresses_d:
             addresses = addresses_d[b.identifier]
