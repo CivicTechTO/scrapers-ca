@@ -80,13 +80,14 @@ VOTE_RESULT_MAP = {
     'Referred': None,
     # See: http://app.toronto.ca/tmmis/viewAgendaItemHistory.do?item=2016.SC13.20
     'Final': None,  # Lost quorum?
+    'Out of Order': None,
 }
 
 MEETING_MAP_URL_TEMPLATE='http://app.toronto.ca/tmmis/getAddressList.do?function=getMeetingAddressList&meetingId={}'
 
 agenda_item_re = re.compile(r'reference = "(?P<identifier>.+?)";')
 address_re = re.compile(r'codeAddress\("\d", ".+?". "(?P<address>.+?)"')
-motion_re = re.compile(r'(?:(?P<number>[0-9a-z]+) - )?Motion to (?P<action>.+?) (?:moved by (?:Councillor|(?:Deputy )?Mayor )?(?P<mover>.+?) )?\((?P<result>.{0,10})\)$')
+motion_re = re.compile(r'(?:(?P<number>[0-9a-z]+) - )?Motion to (?P<action>.+?) (?:moved by (?:Councillor|(?:Deputy )?Mayor )?(?P<mover>.+?) )?\((?P<result>.{0,12})\)$')
 agenda_item_title_re = re.compile('^(.+?)(?: - (?:by )?((?:Deputy )?Mayor|Councillor) (.+), seconded by ((?:Deputy )?Mayor|Councillor) (.+))?$')
 
 
