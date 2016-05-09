@@ -146,6 +146,18 @@ class TorontoBillScraper(CanadianScraper):
                         organization={'name': responsible_org},
                         classification=action_class
                     )
+                elif action_description and 'Motions' not in version['sections']:
+                    # TODO: Why do some have no action_description?
+                    # TODO: Do we fabricate a VoteEvent here?
+                    # Use version-level action when no motions,
+                    # ie. "Adopted by Consent"
+                    b.add_action(
+                        action_description,
+                        action_date,
+                        organization={'name': responsible_org},
+                        classification=action_class
+                    )
+
 
                 for title, content in version['sections'].items():
                     if 'Motions' in title:
