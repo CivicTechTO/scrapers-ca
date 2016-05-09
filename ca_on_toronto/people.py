@@ -11,5 +11,5 @@ class TorontoPersonScraper(CSVScraper):
         'Norman Kelly': ['Norm Kelly'],
         'Justin Di Ciano': ['Justin J. Di Ciano'],
         'John Filion': ['John Fillion'],
-        'Michelle Berardinetti': ['Michelle Holland'],
+        'Michelle Holland': ['Michelle Berardinetti'],
     }
