@@ -245,7 +245,7 @@ class CSVScraper(CanadianScraper):
                         row[key] = corrections[row[key]]
 
                 role = row['primary role'].split(';', 1)[0]
-                name = '{} {}'.format(row['first name'], row['last name'])
+                name = '{} {}'.format(row['first name'].strip(), row['last name'].strip())
                 province = row.get('province')
 
                 if self.district_name:
