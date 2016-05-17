@@ -7,6 +7,7 @@ from .helpers import build_lookup_dict, committees_from_sessions
 from .constants import TWO_LETTER_ORG_CODE_SCHEME
 
 import re
+import json
 
 
 MEMBERSHIP_URL_TEMPLATE = 'http://app.toronto.ca/tmmis/decisionBodyProfile.do?function=doGetMembers&meetingId={}&showLink=true'
@@ -98,6 +99,17 @@ REFERENCE_MEETING_IDS['2014-2018'] = {
     'PB': 11031,
 }
 
+PARENT_ORGS = {
+    '^Board of Health .+$': 'Board of Health',
+    'Affordable Housing Committee': 'Executive Committee',
+    'Budget Committee': 'Executive Committee',
+    'Employee and Labour Relations Committee': 'Executive Committee',
+    '^Interview Subcommittee .+$': 'Civic Appointments Committee',
+    '^Civic Appointments Committee Panel': 'Civic Appointments Committee',
+    '^Parks and Environment Subcommittee': 'Parks and Environment Committee',
+    '^Budget Subcommittee': 'Budget Committee',
+}
+
 
 class TorontoCommitteeScraper(CanadianScraper):
 
@@ -147,6 +159,14 @@ class TorontoCommitteeScraper(CanadianScraper):
         """
         return REFERENCE_MEETING_IDS[term].get(org_code)
 
+    def lookup_parent(self, child_name):
+        for regex, parent in PARENT_ORGS.items():
+            matches = re.match(regex, child_name)
+            if matches:
+                return parent
+
+        return self.jurisdiction.name
+
     def scrape(self):
         sessions = reversed(self.jurisdiction.legislative_sessions)
         committee_term_instances = committees_from_sessions(self, sessions)
@@ -193,5 +213,8 @@ class TorontoCommitteeScraper(CanadianScraper):
                 if instances[canonical_i]['name'] != inst['name']:
                     # TODO: Add start_date and end_date
                     o.add_name(inst['name'])
+
+            parent_name = self.lookup_parent(o.name)
+            o.parent_id = '~' + json.dumps({'name': parent_name})
 
             yield o
