@@ -217,4 +217,56 @@ class TorontoCommitteeScraper(CanadianScraper):
             parent_name = self.lookup_parent(o.name)
             o.parent_id = '~' + json.dumps({'name': parent_name})
 
+            if 'Board of Directors' in o.name:
+                o.extras.update({'type': 'board'})
+
+            if 'Community Council' in o.name:
+                o.extras.update({'type': 'community-council'})
+
+            if 'Nominating Panel' in o.name:
+                o.extras.update({'type': 'nominating-panel'})
+
+            # Source: http://www1.toronto.ca/wps/portal/contentonly?vgnextoid=762b6804e1f22410VgnVCM10000071d60f89RCRD&vgnextchannel=9632acb640c21410VgnVCM10000071d60f89RCRD
+            COMMITTEE_TYPES = {
+                    'standing-policy-committee': [
+                        'Community Development & Recreation',
+                        'Economic Development',
+                        'Government Management',
+                        'Licensing & Standards',
+                        'Parks & Environment',
+                        'Planning & Growth Management',
+                        'Public Works & Infrastructure',
+                        ],
+                    'executive-subcommittee': [
+                        'Affordable Housing',
+                        'Budget Committee',
+                        'Employee and Labour Relations',
+                        ],
+                    'other-council-committee': [
+                        'Audit',
+                        'Board of Health',
+                        'Civic Appointments Committee',
+                        'Striking Committee',
+                        ],
+                    }
+
+            def type_from_fuzzy_name(name):
+                # Standardize on format like: 'Employee & Labour Relations'
+                name = name.replace(' Committee', '').replace('and', '&')
+                options = [
+                        name,
+                        name + ' Committee',
+                        name.replace('&', 'and'),
+                        name + ' Committee',
+                        ]
+                for type, children in COMMITTEE_TYPES.items():
+                    for child in children:
+                        if child in options:
+                            return type
+
+            committee_type = type_from_fuzzy_name(o.name)
+            print(committee_type)
+            if committee_type:
+                o.extras.update({'type': committee_type})
+
             yield o
