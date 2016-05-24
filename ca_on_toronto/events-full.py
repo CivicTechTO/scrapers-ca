@@ -95,6 +95,8 @@ class TorontoFullEventScraper(CanadianScraper):
                     e.add_person(attendee)
                 e.add_source("http://app.toronto.ca/tmmis/getAdminReport.do?function=prepareMeetingScheduleReport")
 
+                agenda_items = []
+
                 for item in agenda_items:
                     if item['date'].date() == when.date():
                         i = e.add_agenda_item(item['description'])
