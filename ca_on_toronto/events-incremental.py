@@ -63,7 +63,8 @@ class TorontoIncrementalEventScraper(CanadianScraper):
         headers = [sanitize_key(col.text) for col in rows.pop(0)]
         for row in rows:
             meeting_link = row.cssselect('a')[0].attrib['href']
-            values = [col.text_content().strip() for col in row]
+            def process_link_or_text(node): return node.xpath('.//a')[0] if node.xpath('.//a') else node
+            values = [process_link_or_text(col).text_content().strip() for col in row]
             item = dict(zip(headers, values))
             item.update({'meeting': sanitize_org_name(item['meeting'])})
             item.update({'meeting_link': meeting_link})
