@@ -48,6 +48,7 @@ ACTION_CLASSIFICATION = {
     'Defer Item Indefinitely': 'deferred',
     'Defer Item': 'deferred',
     'End Debate': None,
+    'Excuse Absentees': None,
     'Extend the Meeting': None,
     'forward item Without Recommendations': None,
     'Introduce Motion without Notice': 'introduction',
