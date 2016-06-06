@@ -178,9 +178,9 @@ class TorontoFullEventScraper(CanadianScraper):
                 item_content_script = page.xpath('//script[contains(text(), "loadContent")]/text()')[0]
                 item_id = re.findall(r'(?<=agendaItemId:")(.*)(?=")', item_content_script)[0]
                 if committee == 'City Council':
-                    item_info_url = 'http://app.toronto.ca/tmmis/viewAgendaItemDetails.do?function=getCouncilMinutesItemPreview&r=1376598367685&agendaItemId={}'.format(item_id)
+                    item_info_url = 'http://app.toronto.ca/tmmis/viewAgendaItemDetails.do?function=getCouncilMinutesItemPreview&agendaItemId={}'.format(item_id)
                 else:
-                    item_info_url = 'http://app.toronto.ca/tmmis/viewAgendaItemDetails.do?function=getMinutesItemPreview&r=1376593612354&agendaItemId={}'.format(item_id)
+                    item_info_url = 'http://app.toronto.ca/tmmis/viewAgendaItemDetails.do?function=getMinutesItemPreview&agendaItemId={}'.format(item_id)
                 page = self.lxmlize(item_info_url)
 
                 root_description = page.xpath('//font[@size="4"]')[0].text_content()
