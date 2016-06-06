@@ -13,6 +13,10 @@ import pytz
 
 
 class TorontoFullEventScraper(CanadianScraper):
+    # Start of 2014-2018 legislative session
+    #start_date = dt.datetime(2014, 12, 1)
+    start_date = dt.datetime.now()
+    end_date = dt.datetime(2018, 11, 30)
 
     def scrape(self):
         "http://app.toronto.ca/tmmis/getAdminReport.do?function=prepareMeetingScheduleReport"
@@ -32,6 +36,8 @@ class TorontoFullEventScraper(CanadianScraper):
                 'termId': 6,
                 'memberId': member.attrib['value'],
                 'decisionBodyId': 0,
+                'fromDate': self.start_date.strftime('%F'),
+                'toDate': self.end_date.strftime('%F'),
             }
             r = self.post("http://app.toronto.ca/tmmis/getAdminReport.do", data=post)
             if r.headers['content-type'] != 'application/vnd.ms-excel':
@@ -48,6 +54,8 @@ class TorontoFullEventScraper(CanadianScraper):
             'exportPublishReportId': 3,
             'termId': 6,
             'decisionBodyId': 0,
+            'fromDate': self.start_date.strftime('%F'),
+            'toDate': self.end_date.strftime('%F'),
         }
 
         r = self.post("http://app.toronto.ca/tmmis/getAdminReport.do", data=post)
@@ -149,6 +157,8 @@ class TorontoFullEventScraper(CanadianScraper):
                 continue
             date = meeting.xpath('./parent::h3')[0].text_content().strip().split('-')
             date = dt.datetime.strptime('-'.join(date[0:2]).strip(), "%B %d, %Y - %I:%M %p")
+            if date < self.start_date or date > self.end_date:
+                continue
             meeting_id = meeting.attrib['name'].replace('header', '').strip()
             # get = { 'function' : 'doPrepare', 'meetingId' : meeting_id }
             if committee == 'City Council':
