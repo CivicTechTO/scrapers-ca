@@ -103,8 +103,6 @@ class TorontoFullEventScraper(CanadianScraper):
                     e.add_person(attendee)
                 e.add_source("http://app.toronto.ca/tmmis/getAdminReport.do?function=prepareMeetingScheduleReport")
 
-                agenda_items = []
-
                 for item in agenda_items:
                     if item['date'].date() == when.date():
                         i = e.add_agenda_item(item['description'])
@@ -112,7 +110,10 @@ class TorontoFullEventScraper(CanadianScraper):
                         i['order'] = item['order']
 
                         for link in item['links']:
-                            i.add_media_link(link['name'], link['url'], on_duplicate='ignore')
+                            # Max 300 char for DB field
+                            if len(link['name']) > 300:
+                                link['name'] = link['name'][:299] + '…'
+                            i.add_media_link(link['name'], link['url'], on_duplicate='ignore', media_type='')
 
                         if 'notes' in item:
                             i['notes'] = [item['notes']]
