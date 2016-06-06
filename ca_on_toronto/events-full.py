@@ -106,7 +106,7 @@ class TorontoFullEventScraper(CanadianScraper):
                 for item in agenda_items:
                     if item['date'].date() == when.date():
                         i = e.add_agenda_item(item['description'])
-                        i.add_committee(committee)
+                        i.add_committee(normalized_name)
                         i['order'] = item['order']
                         i.add_bill(i['order'])
 
@@ -169,7 +169,7 @@ class TorontoFullEventScraper(CanadianScraper):
                 request_string = 'http://app.toronto.ca/tmmis/viewAgendaItemList.do?function=getAgendaItems&meetingId={}'.format(meeting_id)
             page = self.lxmlize(request_string)
 
-            items = page.xpath('//tr[@class="nonUrgent" or @class="urgent"]')
+            items = page.xpath('//tr[contains(@class, "item_")]')
             for item in items:
                 root_link = item.xpath('.//a/@href')[0]
                 agenda_item_identifier = root_link.split('?')[-1].split('=')[-1]
