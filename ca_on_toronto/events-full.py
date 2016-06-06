@@ -34,7 +34,6 @@ class TorontoFullEventScraper(CanadianScraper):
             post = {
                 'function': 'getMemberAttendanceReport',
                 'download': 'csv',
-                'exportPublishReportId': 1,
                 'termId': 6,
                 'memberId': member.attrib['value'],
                 'decisionBodyId': 0,
@@ -53,7 +52,6 @@ class TorontoFullEventScraper(CanadianScraper):
         post = {
             'function': 'getMeetingScheduleReport',
             'download': 'csv',
-            'exportPublishReportId': 3,
             'termId': 6,
             'decisionBodyId': 0,
             'fromDate': self.start_date.strftime('%F'),
