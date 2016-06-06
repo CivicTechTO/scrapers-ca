@@ -155,7 +155,8 @@ class TorontoFullEventScraper(CanadianScraper):
         page = self.lxmlize(link)
         meetings = page.xpath('//a[contains(@name, "header")]')
         for meeting in meetings:
-            if 'Complete' not in meeting.xpath('./parent::h3')[0].text_content():
+            meeting_header = meeting.xpath('./parent::h3')[0].text_content()
+            if all(status not in meeting_header for status in ['Complete', 'Scheduled (Preview)']):
                 continue
             date = meeting.xpath('./parent::h3')[0].text_content().strip().split('-')
             date = dt.datetime.strptime('-'.join(date[0:2]).strip(), "%B %d, %Y - %I:%M %p")
