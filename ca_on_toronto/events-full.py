@@ -108,6 +108,7 @@ class TorontoFullEventScraper(CanadianScraper):
                         i = e.add_agenda_item(item['description'])
                         i.add_committee(committee)
                         i['order'] = item['order']
+                        i.add_bill(i['order'])
 
                         for link in item['links']:
                             # Max 300 char for DB field
@@ -170,7 +171,9 @@ class TorontoFullEventScraper(CanadianScraper):
 
             items = page.xpath('//tr[@class="nonUrgent" or @class="urgent"]')
             for item in items:
-                page = self.lxmlize(item.xpath('.//a/@href')[0])
+                root_link = item.xpath('.//a/@href')[0]
+                agenda_item_identifier = root_link.split('?')[-1].split('=')[-1]
+                page = self.lxmlize(root_link)
                 item_content_script = page.xpath('//script[contains(text(), "loadContent")]/text()')[0]
                 item_id = re.findall(r'(?<=agendaItemId:")(.*)(?=")', item_content_script)[0]
                 if committee == 'City Council':
@@ -180,7 +183,7 @@ class TorontoFullEventScraper(CanadianScraper):
                 page = self.lxmlize(item_info_url)
 
                 root_description = page.xpath('//font[@size="4"]')[0].text_content()
-                root_order = page.xpath('//table[@class="border"]//td[1]//text()')[0]
+                root_order = agenda_item_identifier
 
                 # Get background documents
                 item_links = []
