@@ -29,6 +29,8 @@ class TorontoFullEventScraper(CanadianScraper):
         page = self.lxmlize("http://app.toronto.ca/tmmis/getAdminReport.do?function=prepareMemberAttendanceReport")
         members = page.xpath('//td[@class="inputText"]/select[@name="memberId"]/option')
         for member in members:
+            if member.attrib['value'] == 0:
+                continue
             post = {
                 'function': 'getMemberAttendanceReport',
                 'download': 'csv',
