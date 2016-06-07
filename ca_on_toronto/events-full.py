@@ -14,9 +14,9 @@ import pytz
 
 class TorontoFullEventScraper(CanadianScraper):
     # Start of 2014-2018 legislative session
-    #start_date = dt.datetime(2014, 12, 1)
-    start_date = dt.datetime.now()
+    start_date = dt.datetime(2014, 12, 1)
     end_date = dt.datetime(2018, 11, 30)
+    quick_agenda = True
 
     def scrape(self):
         "http://app.toronto.ca/tmmis/getAdminReport.do?function=prepareMeetingScheduleReport"
@@ -174,7 +174,22 @@ class TorontoFullEventScraper(CanadianScraper):
             items = page.xpath('//tr[contains(@class, "item_")]')
             for item in items:
                 root_link = item.xpath('.//a/@href')[0]
+                root_description = item.xpath('./td[contains(@class, "itemDesc")]/span[1]/text()')[0]
+                #root_description = ' '.join(root_description.split('&nbsp;')[:-1]).strip()
                 agenda_item_identifier = root_link.split('?')[-1].split('=')[-1]
+                root_order = agenda_item_identifier
+
+                if self.quick_agenda:
+                    agenda_item = {
+                        'committee': committee,
+                        'description': root_description,
+                        'order': root_order,
+                        'date': date,
+                        'links': [],
+                    }
+                    agenda_items.append(agenda_item)
+                    continue
+
                 page = self.lxmlize(root_link)
                 item_content_script = page.xpath('//script[contains(text(), "loadContent")]/text()')[0]
                 item_id = re.findall(r'(?<=agendaItemId:")(.*)(?=")', item_content_script)[0]
@@ -185,7 +200,6 @@ class TorontoFullEventScraper(CanadianScraper):
                 page = self.lxmlize(item_info_url)
 
                 root_description = page.xpath('//font[@size="4"]')[0].text_content()
-                root_order = agenda_item_identifier
 
                 # Get background documents
                 item_links = []
@@ -201,13 +215,15 @@ class TorontoFullEventScraper(CanadianScraper):
                     item_link = {'name': description, 'url': link.attrib['href']}
                     item_links.append(item_link)
 
-                agenda_items.append({
+                agenda_item = {
                     'committee': committee,
                     'description': root_description,
                     'order': root_order,
                     'date': date,
                     'links': item_links,
-                })
+                }
+
+                agenda_items.append(agenda_item)
 
                 # Read through the decisions section and create agenda items from the list
                 decisions = page.xpath('//b[contains(text(), "Decision")]/ancestor::tr/following-sibling::tr//p')
