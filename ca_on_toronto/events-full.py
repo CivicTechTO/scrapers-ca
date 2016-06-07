@@ -95,6 +95,7 @@ class TorontoFullEventScraper(CanadianScraper):
                     timezone=tz.zone,
                     status=confirmedOrPassed(start),
                 )
+                e.add_committee(normalized_name)
 
                 attendees = self.find_attendees(tmpdir, row)
                 if len(attendees) == 0:
