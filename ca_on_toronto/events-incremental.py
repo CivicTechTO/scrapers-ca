@@ -123,10 +123,7 @@ class TorontoIncrementalEventScraper(CanadianScraper):
                     'tmmis_meeting_id': event['meeting_id'],
                 }
                 e.add_source(calendar_day_url)
-                e.add_participant(
-                    name=org_name,
-                    type='organization',
-                )
+                e.add_committee(org_name)
 
                 def is_agenda_available(event):
                     return event['publishing_status'] in ['Agenda Published', 'Minutes Published']
