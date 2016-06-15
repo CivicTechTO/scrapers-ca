@@ -439,12 +439,10 @@ class TorontoBillScraper(CanadianScraper):
         wards = page.xpath("//table[@class='border'][1]//td[5]")[0].text_content().strip().lower()
         wards_re = re.compile('ward:(.*)')
         matches = re.match(wards_re, wards)
-        if matches:
-            wards = matches.group(1)
-            if wards != 'all':
-                wards = wards.split(', ')
+        if matches and matches.group(1) != 'all':
+            wards = wards.split(', ')
         else:
-            wards = 'all'
+            wards = []
 
         version.update({'wards': wards})
 
