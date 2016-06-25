@@ -60,6 +60,7 @@ ACTION_CLASSIFICATION = {
     'Receive Item': None,
     'Reconsider Item': None,
     'Reconsider Vote': None,
+    'Reconvene in Public Session': None,
     'Refer Item': 'committee-referral',
     'Refer Motion': None,
     'Set Committee Rule': None,
