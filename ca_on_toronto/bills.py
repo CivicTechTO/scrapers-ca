@@ -53,6 +53,7 @@ ACTION_CLASSIFICATION = {
     'forward item Without Recommendations': None,
     'Introduce Motion without Notice': 'introduction',
     'Introduce Report': None,
+    'Introduce and Pass Bills (Two-thirds)': None,
     'Introduce and Pass Confirmatory Bill': None,
     'Introduce and Pass General Bills': None,
     'Meet in Closed Session': None,
