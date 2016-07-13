@@ -12,7 +12,7 @@ import os
 import pytz
 
 
-class TorontoFullEventScraper(CanadianScraper):
+class TorontoEventScraper(CanadianScraper):
     # Start of 2014-2018 legislative session
     start_date = dt.datetime(2014, 12, 1)
     end_date = dt.datetime(2018, 11, 30)
@@ -73,10 +73,12 @@ class TorontoFullEventScraper(CanadianScraper):
 
             for row in csvfile:
                 name = row[0]
-                when = row[2]
-                when = dt.datetime.strptime(when, "%Y-%m-%d")
-                time = row[3]
-                time = dt.datetime.strptime(time, "%I:%M %p")
+                event_date = row[2]
+                event_date = dt.datetime.strptime(event_date, "%Y-%m-%d")
+                start_time = row[3]
+                start_time = dt.datetime.strptime(start_time, "%I:%M %p")
+                end_time = row[4]
+                end_time = dt.datetime.strptime(end_time, "%I:%M %p")
                 location = row[5]
 
                 if name != committee:
@@ -84,16 +86,18 @@ class TorontoFullEventScraper(CanadianScraper):
                     agenda_items = self.find_items(committee)
 
                 tz = pytz.timezone("America/Toronto")
-                start = tz.localize(when.replace(hour=time.hour, minute=time.minute))
+                start_datetime = tz.localize(event_date.replace(hour=start_time.hour, minute=start_time.minute))
+                end_datetime = tz.localize(event_date.replace(hour=end_time.hour, minute=end_time.minute))
 
                 normalized_name = self.jurisdiction.name if name == 'City Council' else name
 
                 e = Event(
                     name=normalized_name,
-                    start_time=start,
+                    start_time=start_datetime,
+                    end_time=end_datetime,
                     location_name=location,
                     timezone=tz.zone,
-                    status=confirmedOrPassed(start),
+                    status=confirmedOrPassed(end_datetime),
                 )
                 e.add_committee(normalized_name)
 
@@ -105,7 +109,7 @@ class TorontoFullEventScraper(CanadianScraper):
                 e.add_source("http://app.toronto.ca/tmmis/getAdminReport.do?function=prepareMeetingScheduleReport")
 
                 for item in agenda_items:
-                    if item['date'].date() == when.date():
+                    if item['date'].date() == event_date.date():
                         i = e.add_agenda_item(item['description'])
                         i.add_committee(normalized_name)
                         i['order'] = item['order']
@@ -253,8 +257,8 @@ class TorontoFullEventScraper(CanadianScraper):
         return agenda_items
 
 
-def confirmedOrPassed(when):
-    if dt.datetime.utcnow().replace(tzinfo=pytz.utc) < when:
+def confirmedOrPassed(datetime):
+    if dt.datetime.utcnow().replace(tzinfo=pytz.utc) < datetime:
         status = 'confirmed'
     else:
         status = 'passed'
