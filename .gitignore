@@ -2,4 +2,5 @@
 /_data
 /csv
 *.pyc
+*.sql
 meetings.csv
