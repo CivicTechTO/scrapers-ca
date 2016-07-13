@@ -26,27 +26,22 @@ class TorontoEventScraper(CanadianScraper):
 
         tmpdir = tempfile.mkdtemp()
 
-        page = self.lxmlize("http://app.toronto.ca/tmmis/getAdminReport.do?function=prepareMemberAttendanceReport")
-        members = page.xpath('//td[@class="inputText"]/select[@name="memberId"]/option')
-        for member in members:
-            if member.attrib['value'] == 0:
-                continue
-            post = {
-                'function': 'getMemberAttendanceReport',
-                'download': 'csv',
-                'termId': 6,
-                'memberId': member.attrib['value'],
-                'decisionBodyId': 0,
-                'fromDate': self.start_date.strftime('%F'),
-                'toDate': self.end_date.strftime('%F'),
-            }
-            r = self.post("http://app.toronto.ca/tmmis/getAdminReport.do", data=post)
-            if r.headers['content-type'] != 'application/vnd.ms-excel':
-                continue
+        post = {
+            'function': 'getMemberAttendanceReport',
+            'download': 'csv',
+            'termId': 6,
+            'memberId': 0,
+            'decisionBodyId': 0,
+            'fromDate': self.start_date.strftime('%F'),
+            'toDate': self.end_date.strftime('%F'),
+        }
+        r = self.post("http://app.toronto.ca/tmmis/getAdminReport.do", data=post)
+        if r.headers['content-type'] != 'application/vnd.ms-excel':
+            raise
 
-            attendance_file = open(tmpdir + '/' + member.text + '.csv', 'w')
-            attendance_file.write(r.text)
-            attendance_file.close()
+        attendance_file = open(tmpdir + '/attendance.csv', 'w')
+        attendance_file.write(r.text)
+        attendance_file.close()
 
         # scrape events
         post = {
@@ -130,21 +125,27 @@ class TorontoEventScraper(CanadianScraper):
         os.remove('meetings.csv')
 
     def find_attendees(self, directory, event):
+        event_committee = event[0]
+        event_number = event[1]
+        event_date = event[2]
         # TODO
         # go through all csv files and find members that attended the event
-        attendees = []
-        files = [f for f in os.listdir(directory)]
-        for f in files:
-            name = f.replace('.csv', '')
-            with open(directory + '/' + f, 'rt') as csvfile:
-                csvfile = csv.reader(csvfile, delimiter=',')
-                next(csvfile)
-                for row in csvfile:
-                    # find the right date
-                    if row[2] == event[2]:
-                        if (row[0] == event[0]) and (row[1] == event[1]) and (row[5] == "Y"):
-                            attendees.append(name)
-        return set(attendees)
+        attendees = set()
+        with open(directory + '/attendance.csv', 'rt') as csvfile:
+            csvfile = csv.reader(csvfile, delimiter=',')
+            headers = next(csvfile)
+            for row in csvfile:
+                record = {key: value for key, value in zip(headers, row)}
+                person_name = record['First Name'] + ' ' + record['Last Name']
+                # find the right date
+                if all([
+                        record['Session Date'] == event_date,
+                        record['Committee'] == event_committee,
+                        record['MTG #'] == event_number,
+                        record['Present'] == "Y",
+                        ]):
+                    attendees.add(person_name)
+        return attendees
 
     def find_items(self, committee):
 
