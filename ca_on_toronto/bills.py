@@ -91,7 +91,7 @@ MEETING_MAP_URL_TEMPLATE='http://app.toronto.ca/tmmis/getAddressList.do?function
 
 agenda_item_re = re.compile(r'reference = "(?P<identifier>.+?)";')
 address_re = re.compile(r'codeAddress\("\d", ".+?". "(?P<address>.+?)"')
-motion_re = re.compile(r'(?:(?P<number>[0-9a-zA-Z]+) - )?Motion to (?P<action>.+?) (?:moved by (?:Councillor|(?:Deputy )?Mayor )?(?P<mover>.+?) )?\((?P<result>.{0,12})\)$')
+motion_re = re.compile(r'(?:(?P<number>[0-9a-zA-Z]+) - )?Motion to (?P<action>.+?) (?:moved by (?:Councillor |(?:Deputy )?Mayor )?(?P<mover>.+?) )?\((?P<result>.{0,12})\)$')
 agenda_item_title_re = re.compile('^(.+?)(?: - (?:by )?((?:Deputy )?Mayor|Councillor) (.+), seconded by ((?:Deputy )?Mayor|Councillor) (.+))?$')
 
 
