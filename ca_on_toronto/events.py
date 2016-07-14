@@ -84,17 +84,15 @@ class TorontoEventScraper(CanadianScraper):
                 start_datetime = tz.localize(event_date.replace(hour=start_time.hour, minute=start_time.minute))
                 end_datetime = tz.localize(event_date.replace(hour=end_time.hour, minute=end_time.minute))
 
-                normalized_name = self.jurisdiction.name if name == 'City Council' else name
-
                 e = Event(
-                    name=normalized_name,
+                    name=name,
                     start_time=start_datetime,
                     end_time=end_datetime,
                     location_name=location,
                     timezone=tz.zone,
                     status=confirmedOrPassed(end_datetime),
                 )
-                e.add_committee(normalized_name)
+                e.add_committee(name)
 
                 attendees = self.find_attendees(tmpdir, row)
                 if len(attendees) == 0:
@@ -106,7 +104,7 @@ class TorontoEventScraper(CanadianScraper):
                 for item in agenda_items:
                     if item['date'].date() == event_date.date():
                         i = e.add_agenda_item(item['description'])
-                        i.add_committee(normalized_name)
+                        i.add_committee(name)
                         i['order'] = item['order']
                         i.add_bill(i['order'])
 
