@@ -438,10 +438,8 @@ class TorontoBillScraper(CanadianScraper):
             'action': page.xpath("//table[@class='border'][1]//td[3]")[0].text_content().strip(),
         })
 
-        wards = page.xpath("//table[@class='border'][1]//td[5]")[0].text_content().strip().lower()
-        wards_re = re.compile('ward:(.*)')
-        matches = re.match(wards_re, wards)
-        if matches and matches.group(1) != 'all':
+        wards = page.xpath("//table[@class='border'][1]//td[5]")[0].text_content().replace('Ward:', '').strip()
+        if wards != 'All':
             wards = wards.split(', ')
         else:
             wards = []
