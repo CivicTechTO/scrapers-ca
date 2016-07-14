@@ -151,7 +151,7 @@ class TorontoEventScraper(CanadianScraper):
 
         agenda_items = []
 
-        page = self.lxmlize('http://app.toronto.ca/tmmis/decisionBodyList.do?function=prepareDisplayDBList')
+        page = self.lxmlize('http://app.toronto.ca/tmmis/decisionBodyList.do?function=displayDecisionBodyList&selectedTerm=2014-2018')
         link = page.xpath('//table[@class="default zebra"]//a[contains(text(),"{}")]/@href'.format(committee))
         if link:
             link = link[0]
