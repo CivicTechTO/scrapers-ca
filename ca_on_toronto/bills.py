@@ -170,11 +170,10 @@ class TorontoBillScraper(CanadianScraper):
                 for title, content in version['sections'].items():
                     if 'Motions' in title:
                         motions = content
-                        for i, motion in enumerate(motions):
+                        for count, motion in enumerate(motions, 1):
                             result = VOTE_RESULT_MAP[motion['result']]
                             if result:
                                 v = self.createVoteEvent(motion, version)
-                                count = i + 1
                                 v.extras['order'] = count
 
                                 # TODO: Add actions for failures
@@ -260,7 +259,10 @@ class TorontoBillScraper(CanadianScraper):
                 search_qs += '&fromDate={}&toDate={}'.format(date_from.strftime('%Y-%m-%d'), date_to.strftime('%Y-%m-%d'))
 
             page = self.lxmlize(self.AGENDA_ITEM_SEARCH_URL + search_qs)
-            for agenda_item_summary in self.parseSearchResults(page):
+            results = list(self.parseSearchResults(page))
+            total = len(results)
+            for count, agenda_item_summary in enumerate(results, 1):
+                print('Scraping agenda item {}/{}...'.format(count, total))
                 agenda_item_summary['session'] = term['label']
                 yield agenda_item_summary
 
