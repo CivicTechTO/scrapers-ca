@@ -109,6 +109,9 @@ class TorontoBillScraper(CanadianScraper):
 
     def scrape(self):
         for agenda_item in self.agendaItems(date_from=self.start_date, date_to=self.end_date):
+            agenda_item['etree'] = self.lxmlize(agenda_item['url'])
+            agenda_item['recent_meeting_id'] = self.recentMeetingId(agenda_item)
+
             b = self.createBill(agenda_item)
             agenda_item_versions = self.agendaItemVersions(agenda_item)
 
@@ -205,8 +208,7 @@ class TorontoBillScraper(CanadianScraper):
         b = Bill(**bill)
         b.add_source(agenda_item['url'], note='web')
 
-        meeting_id = self.recentMeetingId(b.identifier)
-        addresses_d = self.addressesByMeetingId(meeting_id)
+        addresses_d = self.addressesByMeetingId(agenda_item['recent_meeting_id'])
 
         if b.identifier in addresses_d:
             addresses = addresses_d[b.identifier]
@@ -282,7 +284,7 @@ class TorontoBillScraper(CanadianScraper):
             yield agenda_item
 
     def agendaItemVersions(self, agenda_item):
-        page = self.lxmlize(agenda_item['url'])
+        page = agenda_item['etree']
         versions = []
         for version in self.parseAgendaItemVersions(page):
             version['bill_identifier'] = agenda_item['Item No.']
@@ -330,10 +332,8 @@ class TorontoBillScraper(CanadianScraper):
 
             yield version
 
-    def recentMeetingId(self, bill_identifier):
-        url_template = 'http://app.toronto.ca/tmmis/viewAgendaItemHistory.do?item={}'
-        url = url_template.format(bill_identifier)
-        page = self.lxmlize(url)
+    def recentMeetingId(self, agenda_item):
+        page = agenda_item['etree']
         button = page.find(".//button[@id='btHome']")
         func_re = re.compile(r'goToProfile\((?P<meetingId>\d+)\);')
         meeting_id = re.match(func_re, button.attrib['onclick']).group('meetingId')
