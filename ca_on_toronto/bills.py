@@ -251,7 +251,7 @@ class TorontoBillScraper(CanadianScraper):
         Submit a search query on the agenda item search page, and return a list
         of result pages.
         """
-        for session in self.jurisdiction.sessions():
+        for session in self.jurisdiction.fetch_tmmis_terms():
             search_qs = '&termId={}'.format(session['termId'])
 
             if date_from and date_to:

@@ -168,8 +168,7 @@ class TorontoCommitteeScraper(CanadianScraper):
         return self.jurisdiction.name
 
     def scrape(self):
-        sessions = list(reversed(self.jurisdiction.legislative_sessions))[:1]
-        committee_term_instances = committees_from_sessions(self, sessions)
+        committee_term_instances = committees_from_sessions(self, [self.jurisdiction.current_leg_session()])
         committees_by_code = build_lookup_dict(self, data_list=committee_term_instances, index_key='code')
 
         for code, instances in committees_by_code.items():
