@@ -76,10 +76,6 @@ class TorontoEventScraper(CanadianScraper):
                 end_time = dt.datetime.strptime(end_time, "%I:%M %p")
                 location = row[5]
 
-                if name != committee:
-                    committee = name
-                    agenda_items = self.find_items(committee)
-
                 tz = pytz.timezone("America/Toronto")
                 start_datetime = tz.localize(event_date.replace(hour=start_time.hour, minute=start_time.minute))
                 end_datetime = tz.localize(event_date.replace(hour=end_time.hour, minute=end_time.minute))
@@ -101,7 +97,13 @@ class TorontoEventScraper(CanadianScraper):
                     e.add_person(attendee)
                 e.add_source("http://app.toronto.ca/tmmis/getAdminReport.do?function=prepareMeetingScheduleReport")
 
-                for item in agenda_items:
+                if name != committee:
+                    committee = name
+                    agenda = self.parse_agenda(committee)
+                    if agenda['url']:
+                        e.add_source(agenda['url']+'&print=Y')
+
+                for item in agenda['items']:
                     if item['date'].date() == event_date.date():
                         i = e.add_agenda_item(item['description'])
                         i.add_committee(name)
@@ -145,9 +147,10 @@ class TorontoEventScraper(CanadianScraper):
                     attendees.add(person_name)
         return attendees
 
-    def find_items(self, committee):
+    def parse_agenda(self, committee):
 
         agenda_items = []
+        agenda_url = None
 
         page = self.lxmlize('http://app.toronto.ca/tmmis/decisionBodyList.do?function=displayDecisionBodyList&selectedTerm=2014-2018')
         link = page.xpath('//table[@class="default zebra"]//a[contains(text(),"{}")]/@href'.format(committee))
@@ -169,16 +172,16 @@ class TorontoEventScraper(CanadianScraper):
             meeting_id = meeting.attrib['name'].replace('header', '').strip()
             # get = { 'function' : 'doPrepare', 'meetingId' : meeting_id }
             if committee == 'City Council':
-                request_string = 'http://app.toronto.ca/tmmis/viewAgendaItemList.do?function=getCouncilAgendaItems&meetingId={}'.format(meeting_id)
+                agenda_url = 'http://app.toronto.ca/tmmis/viewAgendaItemList.do?function=getCouncilAgendaItems&meetingId={}'.format(meeting_id)
             else:
-                request_string = 'http://app.toronto.ca/tmmis/viewAgendaItemList.do?function=getAgendaItems&meetingId={}'.format(meeting_id)
-            page = self.lxmlize(request_string)
+                agenda_url = 'http://app.toronto.ca/tmmis/viewAgendaItemList.do?function=getAgendaItems&meetingId={}'.format(meeting_id)
+            page = self.lxmlize(agenda_url)
 
             items = page.xpath('//tr[contains(@class, "item_")]')
             for item in items:
                 root_link = item.xpath('.//a/@href')[0]
                 root_description = item.xpath('./td[contains(@class, "itemDesc")]/span[1]/text()')[0]
-                #root_description = ' '.join(root_description.split('&nbsp;')[:-1]).strip()
+                root_description = ' '.join(root_description.split('\xa0')[:-1]).strip()
                 agenda_item_identifier = root_link.split('?')[-1].split('=')[-1]
                 root_order = agenda_item_identifier
 
@@ -253,7 +256,12 @@ class TorontoEventScraper(CanadianScraper):
                     agenda_item = {}
                     notes = ''
 
-        return agenda_items
+        agenda = {
+                'items': agenda_items,
+                'url': agenda_url,
+                }
+
+        return agenda
 
 
 def confirmedOrPassed(datetime):
