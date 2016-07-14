@@ -253,15 +253,15 @@ class TorontoBillScraper(CanadianScraper):
         Submit a search query on the agenda item search page, and return a list
         of result pages.
         """
-        for session in self.jurisdiction.fetch_tmmis_terms():
-            search_qs = '&termId={}'.format(session['termId'])
+        for term in self.jurisdiction.fetch_tmmis_terms():
+            search_qs = '&termId={}'.format(term['id'])
 
             if date_from and date_to:
                 search_qs += '&fromDate={}&toDate={}'.format(date_from.strftime('%Y-%m-%d'), date_to.strftime('%Y-%m-%d'))
 
             page = self.lxmlize(self.AGENDA_ITEM_SEARCH_URL + search_qs)
             for agenda_item_summary in self.parseSearchResults(page):
-                agenda_item_summary['session'] = session['term_name']
+                agenda_item_summary['session'] = term['label']
                 yield agenda_item_summary
 
     def parseSearchResults(self, page):
