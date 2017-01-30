@@ -4,7 +4,7 @@
 -e git+git://github.com/patcon/pupa.git@228-add-eventagendaitem-classification#egg=pupa
 -e git+git://github.com/opencivicdata/python-opencivicdata-divisions.git#egg=opencivicdata-divisions
 # @see https://github.com/opencivicdata/python-opencivicdata-django/pull/57
--e git+git://github.com/opencivicdata/python-opencivicdata-django.git@900a8557b05b50a4919c9b43dce187b28a3415c9#egg=opencivicdata-django
+-e git+git://github.com/opencivicdata/python-opencivicdata-django.git@ea6d4f1a1d3d08bf04b4aa099e0b994a486474c7#egg=opencivicdata-django
 -e git+git://github.com/sunlightlabs/waterfall#egg=waterfall
 boto==2.33.0 # pupa unpinned
 cssselect==0.9.1
@@ -14,6 +14,7 @@ lxml==3.3.5
 psycopg2==2.5.3 # pupa unpinned
 requests==2.6.0
 six==1.8.0
+pyyaml
 
 # Validation
 validictory==1.0.1
