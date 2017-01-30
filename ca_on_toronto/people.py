@@ -5,7 +5,7 @@ COUNCIL_PAGE = 'http://www1.toronto.ca/wps/portal/contentonly?vgnextoid=c3a83293
 
 
 class TorontoPersonScraper(CSVScraper):
-    csv_url = 'http://www1.toronto.ca/City%20Of%20Toronto/Information%20&%20Technology/Open%20Data/Data%20Sets/Assets/Files/Toronto_Elected_Officials.csv'
+    csv_url = 'https://raw.githubusercontent.com/t0ronto-ca/dataset-toronto-elected-officials/master/data/contact-info.csv'
     district_name = '{district name} ({district id})'
     other_names = {
         'Norman Kelly': ['Norm Kelly'],
