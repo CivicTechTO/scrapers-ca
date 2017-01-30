@@ -48,10 +48,12 @@ ACTION_CLASSIFICATION = {
     'Defer Item Indefinitely': 'deferred',
     'Defer Item': 'deferred',
     'End Debate': None,
+    'Excuse Absentees': None,
     'Extend the Meeting': None,
     'forward item Without Recommendations': None,
     'Introduce Motion without Notice': 'introduction',
     'Introduce Report': None,
+    'Introduce and Pass Bills (Two-thirds)': None,
     'Introduce and Pass Confirmatory Bill': None,
     'Introduce and Pass General Bills': None,
     'Meet in Closed Session': None,
@@ -59,7 +61,9 @@ ACTION_CLASSIFICATION = {
     'Receive Item': None,
     'Reconsider Item': None,
     'Reconsider Vote': None,
+    'Reconvene in Public Session': None,
     'Refer Item': 'committee-referral',
+    'Refer Motion': None,
     'Set Committee Rule': None,
     'Remove from Committee': None,
     'Waive Notice': None,
@@ -68,26 +72,34 @@ ACTION_CLASSIFICATION = {
     'Withdraw an Item': 'withdrawal',
 }
 
-RESULT_MAP = {
+VOTE_RESULT_MAP = {
+    'Amended': 'pass',
     'Carried': 'pass',
     'Lost': 'fail',
     'Lost (tie)': 'fail',
-    'Redundant': 'fail',
-    'Final': 'fail',
-    'Withdrawn': 'fail',
-    'Amended': 'pass',
-    # TODO: Investigate what this motion status means
-    # see: http://app.toronto.ca/tmmis/viewAgendaItemDetails.do?function=getMinutesItemPreview&agendaItemId=63347
+    # No VoteEvents
+    'Withdrawn': None,
+    'Redundant': None,
+    # See: http://app.toronto.ca/tmmis/viewAgendaItemHistory.do?item=2016.CD10.2#header1
     'Referred': None,
+    # See: http://app.toronto.ca/tmmis/viewAgendaItemHistory.do?item=2016.SC13.20
+    'Final': None,  # Lost quorum?
+    'Out of Order': None,
 }
 
-motion_re = re.compile(r'(?:(?P<number>[0-9a-z]+) - )?Motion to (?P<action>.+?) (?:moved by (?:Councillor|(?:Deputy )?Mayor )?(?P<mover>.+?) )?\((?P<result>.{0,10})\)$')
+MEETING_MAP_URL_TEMPLATE='http://app.toronto.ca/tmmis/getAddressList.do?function=getMeetingAddressList&meetingId={}'
+
+agenda_item_re = re.compile(r'reference = "(?P<identifier>.+?)";')
+address_re = re.compile(r'codeAddress\("\d", ".+?". "(?P<address>.+?)"')
+motion_re = re.compile(r'(?:(?P<number>[0-9a-zA-Z]+) - )?Motion to (?P<action>.+?) (?:moved by (?:Councillor|(?:Deputy )?Mayor )?(?P<mover>.+?) )?\((?P<result>.{0,12})\)$')
 agenda_item_title_re = re.compile('^(.+?)(?: - (?:by )?((?:Deputy )?Mayor|Councillor) (.+), seconded by ((?:Deputy )?Mayor|Councillor) (.+))?$')
 
 
 class TorontoBillScraper(CanadianScraper):
-    AGENDA_ITEM_SEARCH_URL = 'http://app.toronto.ca/tmmis/findAgendaItem.do?function=doSearch&itemsPerPage=1000&sortBy=meetingDate&sortOrder=A'
+    AGENDA_ITEM_SEARCH_URL = 'http://app.toronto.ca/tmmis/findAgendaItem.do?function=doSearch&itemsPerPage=1000&sortBy=reference&sortOrder=A'
     AGENDA_ITEM_URL_TEMPLATE = 'http://app.toronto.ca/tmmis/viewAgendaItemHistory.do?item={}'
+
+    meeting_addresses_d = {}
 
     TIMEZONE = 'America/Toronto'
     date_format = '%B %d, %Y'
@@ -103,6 +115,8 @@ class TorontoBillScraper(CanadianScraper):
             # Use most recent agenda item version for summary and fulltext
             recent_version = agenda_item_versions[-1]
             b.extras['full_text'] = recent_version['full_text']
+            b.extras['wards'] = recent_version['wards']
+            b.extras['type'] = recent_version['type'].lower()
             for title, content in recent_version['sections'].items():
                 if 'Summary' in title:
                     date = self.toDate(recent_version['date'])
@@ -137,12 +151,24 @@ class TorontoBillScraper(CanadianScraper):
                         organization={'name': responsible_org},
                         classification=action_class
                     )
+                elif action_description and 'Motions' not in version['sections']:
+                    # TODO: Why do some have no action_description?
+                    # TODO: Do we fabricate a VoteEvent here?
+                    # Use version-level action when no motions,
+                    # ie. "Adopted by Consent"
+                    b.add_action(
+                        action_description,
+                        action_date,
+                        organization={'name': responsible_org},
+                        classification=action_class
+                    )
+
 
                 for title, content in version['sections'].items():
                     if 'Motions' in title:
                         motions = content
                         for i, motion in enumerate(motions):
-                            result = RESULT_MAP[motion['result']]
+                            result = VOTE_RESULT_MAP[motion['result']]
                             if result:
                                 v = self.createVoteEvent(motion, version)
                                 count = i + 1
@@ -179,6 +205,16 @@ class TorontoBillScraper(CanadianScraper):
         b = Bill(**bill)
         b.add_source(agenda_item['url'], note='web')
 
+        meeting_id = self.recentMeetingId(b.identifier)
+        addresses_d = self.addressesByMeetingId(meeting_id)
+
+        if b.identifier in addresses_d:
+            addresses = addresses_d[b.identifier]
+            b.extras['locations'] = []
+            for address in addresses:
+                location = {'address': {'full_address': address}}
+                b.extras['locations'].append(location)
+
         if primary_sponsor and secondary_sponsor:
             b.add_sponsorship(primary_sponsor, 'mover', 'person', True)
             b.add_sponsorship(secondary_sponsor, 'seconder', 'person', False)
@@ -190,7 +226,7 @@ class TorontoBillScraper(CanadianScraper):
         date = self.toDate(version['date'])
         v = VoteEvent(
             motion_text=motion['title_text'],
-            result=RESULT_MAP[motion['result']],
+            result=VOTE_RESULT_MAP[motion['result']],
             classification=motion['action'],
             start_date=date,
             legislative_session=version['session'],
@@ -294,6 +330,16 @@ class TorontoBillScraper(CanadianScraper):
 
             yield version
 
+    def recentMeetingId(self, bill_identifier):
+        url_template = 'http://app.toronto.ca/tmmis/viewAgendaItemHistory.do?item={}'
+        url = url_template.format(bill_identifier)
+        page = self.lxmlize(url)
+        button = page.find(".//button[@id='btHome']")
+        func_re = re.compile(r'goToProfile\((?P<meetingId>\d+)\);')
+        meeting_id = re.match(func_re, button.attrib['onclick']).group('meetingId')
+
+        return meeting_id
+
     def parseDataTable(self, table):
         """
         Legistar uses the same kind of data table in a number of
@@ -395,12 +441,10 @@ class TorontoBillScraper(CanadianScraper):
         wards = page.xpath("//table[@class='border'][1]//td[5]")[0].text_content().strip().lower()
         wards_re = re.compile('ward:(.*)')
         matches = re.match(wards_re, wards)
-        if matches:
-            wards = matches.group(1)
-            if wards != 'all':
-                wards = wards.split(', ')
+        if matches and matches.group(1) != 'all':
+            wards = wards.split(', ')
         else:
-            wards = 'all'
+            wards = []
 
         version.update({'wards': wards})
 
@@ -450,3 +494,26 @@ class TorontoBillScraper(CanadianScraper):
 
     def toDate(self, text):
         return self.toTime(text).date().isoformat()
+
+    # TODO: Figure out how to get addresses back into bills
+    def addressesByMeetingId(self, meeting_id):
+        if self.meeting_addresses_d.get(meeting_id):
+            return self.meeting_addresses_d[meeting_id]
+
+        meeting_map_url = MEETING_MAP_URL_TEMPLATE.format(meeting_id)
+        page = self.lxmlize(meeting_map_url)
+        script_text = page.xpath('//script[not(@src)]')[0].text_content()
+
+        agenda_item_ids = re.findall(agenda_item_re, script_text)
+        addresses = re.findall(address_re, script_text)
+
+        item_addresses = {}
+        for id, address in zip(agenda_item_ids, addresses):
+            if not item_addresses.get(id):
+                item_addresses[id] = [address]
+            else:
+                item_addresses[id].append(address)
+
+        self.meeting_addresses_d[meeting_id] = item_addresses
+
+        return item_addresses

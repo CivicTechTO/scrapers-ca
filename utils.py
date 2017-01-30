@@ -245,7 +245,7 @@ class CSVScraper(CanadianScraper):
                         row[key] = corrections[row[key]]
 
                 role = row['primary role'].split(';', 1)[0]
-                name = '{} {}'.format(row['first name'], row['last name'])
+                name = '{} {}'.format(row['first name'].strip(), row['last name'].strip())
                 province = row.get('province')
 
                 if self.district_name:
@@ -310,6 +310,7 @@ class CanadianJurisdiction(Jurisdiction):
                 ('bills', 'Bill'),
                 ('bills-incremental', 'IncrementalBill'),
                 ('committees', 'Committee'),
+                ('events-full', 'FullEvent'),
                 ('events-incremental', 'IncrementalEvent'),
                 ('people', 'Person'),
                 ('votes', 'Vote'),
@@ -372,6 +373,7 @@ class CanadianPerson(Person):
         super(CanadianPerson, self).__setattr__(name, value)
 
     def add_link(self, url, *, note=''):
+        url = url.strip()
         if url.startswith('www.'):
             url = 'http://{}'.format(url)
         if re.match(r'\A@[A-Za-z]+\Z', url):

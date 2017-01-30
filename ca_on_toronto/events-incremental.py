@@ -27,9 +27,6 @@ STATUS_DICT = {
     'In Progress (Public Session)': 'confirmed',
 }
 
-agenda_item_re = re.compile(r'reference = "(?P<identifier>.+?)";')
-address_re = re.compile(r'codeAddress\("\d", ".+?". "(?P<address>.+?)"')
-
 
 class TorontoIncrementalEventScraper(CanadianScraper):
 
@@ -66,7 +63,8 @@ class TorontoIncrementalEventScraper(CanadianScraper):
         headers = [sanitize_key(col.text) for col in rows.pop(0)]
         for row in rows:
             meeting_link = row.cssselect('a')[0].attrib['href']
-            values = [col.text_content().strip() for col in row]
+            def process_link_or_text(node): return node.xpath('.//a')[0] if node.xpath('.//a') else node
+            values = [process_link_or_text(col).text_content().strip() for col in row]
             item = dict(zip(headers, values))
             item.update({'meeting': sanitize_org_name(item['meeting'])})
             item.update({'meeting_link': meeting_link})
@@ -125,10 +123,7 @@ class TorontoIncrementalEventScraper(CanadianScraper):
                     'tmmis_meeting_id': event['meeting_id'],
                 }
                 e.add_source(calendar_day_url)
-                e.add_participant(
-                    name=org_name,
-                    type='organization',
-                )
+                e.add_committee(org_name)
 
                 def is_agenda_available(event):
                     return event['publishing_status'] in ['Agenda Published', 'Minutes Published']
@@ -218,21 +213,3 @@ class TorontoIncrementalEventScraper(CanadianScraper):
             link = a.attrib['href']
             full_identifier = parse_qs(urlparse(link).query)['item'][0]
             yield full_identifier
-
-    # TODO: Figure out how to get addresses back into bills
-    def addressesByAgendaId(self, meeting_map_url):
-        addresses_d = {}
-
-        page = self.lxmlize(meeting_map_url)
-        script_text = page.xpath('//script[not(@src)]')[0].text_content()
-
-        agenda_item_ids = re.findall(agenda_item_re, script_text)
-        addresses = re.findall(address_re, script_text)
-
-        for id, address in zip(agenda_item_ids, addresses):
-            if not addresses_d.get(id):
-                addresses_d[id] = [address]
-            else:
-                addresses_d[id].append(address)
-
-        return addresses_d
