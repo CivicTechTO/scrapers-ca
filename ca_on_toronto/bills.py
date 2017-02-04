@@ -50,6 +50,7 @@ ACTION_CLASSIFICATION = {
     'End Debate': None,
     'Excuse Absentees': None,
     'Extend the Meeting': None,
+    'Extend Speaking Time': None,
     'forward item Without Recommendations': None,
     'Introduce Motion without Notice': 'introduction',
     'Introduce Report': None,
